@@ -1,0 +1,9 @@
+pkg: github.com/lxygwqf9527/demo-cmdb
+name: demo-cmdb
+description: cmdb
+enable_keyauth: true
+enable_mysql: true
+enable_mongodb: false
+gen_example: true
+http_framework: go-restful
+enable_cache: false
