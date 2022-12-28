@@ -21,8 +21,8 @@ var vers bool
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "demo-cmdb",
-	Short: "cmdb",
-	Long:  "cmdb",
+	Short: "多云管理",
+	Long:  "多云管理",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if vers {
 			fmt.Println(version.FullVersion())
@@ -45,5 +45,5 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&confType, "config-type", "t", "file", "the service config type [file/env/etcd]")
 	RootCmd.PersistentFlags().StringVarP(&confFile, "config-file", "f", "etc/config.toml", "the service config from file")
 	RootCmd.PersistentFlags().StringVarP(&confETCD, "config-etcd", "e", "127.0.0.1:2379", "the service config from etcd")
-	RootCmd.PersistentFlags().BoolVarP(&vers, "version", "v", false, "the demo-cmdb version")
+	RootCmd.PersistentFlags().BoolVarP(&vers, "version", "v", false, "the cmdb-g7 version")
 }

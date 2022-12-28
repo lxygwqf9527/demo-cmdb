@@ -8,25 +8,20 @@ import (
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
-	"github.com/infraboard/keyauth/apps/endpoint"
 	"github.com/infraboard/mcube/app"
 	"github.com/infraboard/mcube/http/label"
 	"github.com/infraboard/mcube/logger"
 	"github.com/infraboard/mcube/logger/zap"
-	httpb "github.com/infraboard/mcube/pb/http"
+	"github.com/lxygwqf9527/demo-keyauth/apps/endpoint"
+	keyauth_rpc "github.com/lxygwqf9527/demo-keyauth/client/rpc"
+	keyauth_auth "github.com/lxygwqf9527/demo-keyauth/client/rpc/auth"
 
 	"github.com/lxygwqf9527/demo-cmdb/conf"
 	"github.com/lxygwqf9527/demo-cmdb/swagger"
-	"github.com/lxygwqf9527/demo-cmdb/version"
 )
 
 // NewHTTPService 构建函数
 func NewHTTPService() *HTTPService {
-	c, err := conf.C().Keyauth.Client()
-	if err != nil {
-		panic(err)
-	}
-
 	r := restful.DefaultContainer
 	// Optionally, you can install the Swagger Service which provides a nice Web UI on your REST API
 	// You need to download the Swagger HTML5 assets and change the FilePath location in the config below.
@@ -41,6 +36,15 @@ func NewHTTPService() *HTTPService {
 		Container:      r}
 	r.Filter(cors.Filter)
 
+	// 加载认证中间件, 需要Keyauth的SDK
+	keyauthClient, err := keyauth_rpc.NewClient(conf.C().Mcenter)
+	if err != nil {
+		panic(err)
+	}
+	auther := keyauth_auth.NewKeyauthAuther(keyauthClient, "cmdb")
+	fmt.Println(auther)
+	r.Filter(auther.RestfulAuthHandlerFunc)
+
 	server := &http.Server{
 		ReadHeaderTimeout: 60 * time.Second,
 		ReadTimeout:       60 * time.Second,
@@ -52,22 +56,21 @@ func NewHTTPService() *HTTPService {
 	}
 
 	return &HTTPService{
-		r:        r,
-		server:   server,
-		l:        zap.L().Named("HTTP Service"),
-		c:        conf.C(),
-		endpoint: c.Endpoint(),
+		kc:     keyauthClient,
+		r:      r,
+		server: server,
+		l:      zap.L().Named("HTTP Service"),
+		c:      conf.C(),
 	}
 }
 
 // HTTPService http服务
 type HTTPService struct {
+	kc     *keyauth_rpc.ClientSet
 	r      *restful.Container
 	l      logger.Logger
 	c      *conf.Config
 	server *http.Server
-
-	endpoint endpoint.ServiceClient
 }
 
 func (s *HTTPService) PathPrefix() string {
@@ -87,8 +90,11 @@ func (s *HTTPService) Start() error {
 	s.r.Add(restfulspec.NewOpenAPIService(config))
 	s.l.Infof("Get the API using http://%s%s", s.c.App.HTTP.Addr(), config.APIPath)
 
-	// 注册路由条目
-	s.RegistryEndpoint()
+	// 此时所有的webservice已经加载完成
+	if err := s.Registry(); err != nil {
+		// 注册流程不影响启动流程，不retrun
+		s.l.Errorf("registry failed, %s", err)
+	}
 
 	// 启动 HTTP服务
 	s.l.Infof("HTTP服务启动成功, 监听地址: %s", s.server.Addr)
@@ -113,36 +119,46 @@ func (s *HTTPService) Stop() error {
 	return nil
 }
 
-func (s *HTTPService) RegistryEndpoint() {
-	// 注册服务权限条目
-	s.l.Info("start registry endpoints ...")
-
-	entries := []*httpb.Entry{}
+// 通过Keyauth SDK 注册服务功能
+// 什么时候注册? 服务启动的时候? 需要WebService都已经加载完成,才能使用RegisteredWebServices()
+// 一定要等到所有WebService已经加载到router后
+func (s *HTTPService) Registry() error {
+	// 服务功能列表, 从路由装饰上获取注册信息
 	wss := s.r.RegisteredWebServices()
+
+	endpoints := endpoint.EndpiontSet{
+		Service:   "cmdb",
+		Endpoints: []*endpoint.Endpiont{},
+	}
 	for i := range wss {
-		for _, r := range wss[i].Routes() {
-			m := label.Meta(r.Metadata)
-			entries = append(entries, &httpb.Entry{
-				FunctionName:     r.Operation,
-				Path:             fmt.Sprintf("%s.%s", r.Method, r.Path),
-				Method:           r.Method,
-				Resource:         m.Resource(),
-				AuthEnable:       m.AuthEnable(),
-				PermissionEnable: m.PermissionEnable(),
-				Allow:            m.Allow(),
-				AuditLog:         m.AuditEnable(),
-				Labels: map[string]string{
-					label.Action: m.Action(),
-				},
+		// 取出每个web service路由
+		routes := wss[i].Routes()
+		for _, r := range routes {
+			var resource, action string
+			if r.Metadata != nil {
+				if v, ok := r.Metadata[label.Resource]; ok {
+					resource, _ = v.(string)
+				}
+				if v, ok := r.Metadata[label.Action]; ok {
+					action, _ = v.(string)
+				}
+			}
+			endpoints.Endpoints = append(endpoints.Endpoints, &endpoint.Endpiont{
+				Resource: resource,
+				Action:   action,
+				Path:     r.Path,
+				Method:   r.Method,
 			})
 		}
 	}
 
-	req := endpoint.NewRegistryRequest(version.Short(), entries)
-	_, err := s.endpoint.RegistryEndpoint(context.Background(), req)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	resp, err := s.kc.Endpoint().RegistryEndpoint(ctx, &endpoints)
 	if err != nil {
-		s.l.Warnf("registry endpoints error, %s", err)
-	} else {
-		s.l.Debug("service endpoints registry success")
+		return err
 	}
+
+	s.l.Debugf("registry response: %s", resp)
+	return nil
 }

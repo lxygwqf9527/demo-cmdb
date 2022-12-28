@@ -24,8 +24,8 @@ import (
 // startCmd represents the start command
 var serviceCmd = &cobra.Command{
 	Use:   "start",
-	Short: "demo-cmdb API服务",
-	Long:  "demo-cmdb API服务",
+	Short: "cmdb-g7 API服务",
+	Long:  "cmdb-g7 API服务",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// 初始化全局变量
 		if err := loadGlobalConfig(confType); err != nil {

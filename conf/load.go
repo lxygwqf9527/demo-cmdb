@@ -23,9 +23,7 @@ func LoadConfigFromToml(filePath string) error {
 	if _, err := toml.DecodeFile(filePath, cfg); err != nil {
 		return err
 	}
-	// 加载全局配置单例
-	global = cfg
-	return nil
+	return cfg.InitGlobal()
 }
 
 // LoadConfigFromEnv 从环境变量中加载配置
@@ -34,7 +32,6 @@ func LoadConfigFromEnv() error {
 	if err := env.Parse(cfg); err != nil {
 		return err
 	}
-	// 加载全局配置单例
-	global = cfg
-	return nil
+
+	return cfg.InitGlobal()
 }

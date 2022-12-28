@@ -7,9 +7,13 @@ import (
 	"time"
 
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
 
-	kc "github.com/infraboard/keyauth/client"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/infraboard/mcenter/client/rpc"
+)
+
+const (
+	CIPHER_TEXT_PREFIX = "@ciphered@"
 )
 
 var (
@@ -18,11 +22,10 @@ var (
 
 func newConfig() *Config {
 	return &Config{
-		App:   newDefaultAPP(),
-		Log:   newDefaultLog(),
-		MySQL: newDefaultMySQL(),
-
-		Keyauth: newDefaultKeyauth(),
+		App:     newDefaultAPP(),
+		Log:     newDefaultLog(),
+		MySQL:   newDefaultMySQL(),
+		Mcenter: rpc.NewDefaultConfig(),
 	}
 }
 
@@ -32,7 +35,32 @@ type Config struct {
 	Log   *log   `toml:"log"`
 	MySQL *mysql `toml:"mysql"`
 
-	Keyauth *keyauth `toml:"keyauth"`
+	// 注册中心的配置, 期望通过该配置能访问到注册中心
+	// 通过 mcenter 通过的SDK(GRPC SDK Client) 来访问
+	// 如何初始化 Mcenter GRPC Client ?
+	// 通过 SDK 提供的LoadClientFromConfig来初始化的
+	// 初始化后 mcenter 客户端包里面的全局变量 C来进行访问
+	// rpc.C().Instance()
+	// 后面 实现实例注册, 就执行使用 rpc.C() 这个全局对象
+	Mcenter *rpc.Config `toml:"mcenter"`
+}
+
+func (c *Config) InitGlobal() error {
+
+	// 提前加载好 mcenter客户端, 全局变量
+	// 所有的其他服务的SDK 才能正常解析地址
+	err := rpc.LoadClientFromConfig(c.Mcenter)
+	if err != nil {
+		return fmt.Errorf("load mcenter client from config error: " + err.Error())
+	}
+
+	// mcenter 客户端对象就初始化好了
+	// rpc.C()
+
+	// 加载全局配置单例
+	global = c
+
+	return nil
 }
 
 type app struct {
@@ -105,37 +133,6 @@ func newDefaultLog() *log {
 	}
 }
 
-// Auth auth 配置
-type keyauth struct {
-	Host         string `toml:"host" env:"KEYAUTH_HOST"`
-	Port         string `toml:"port" env:"KEYAUTH_PORT"`
-	ClientID     string `toml:"client_id" env:"KEYAUTH_CLIENT_ID"`
-	ClientSecret string `toml:"client_secret" env:"KEYAUTH_CLIENT_SECRET"`
-}
-
-func (a *keyauth) Addr() string {
-	return a.Host + ":" + a.Port
-}
-
-func (a *keyauth) Client() (*kc.Client, error) {
-	if kc.C() == nil {
-		conf := kc.NewDefaultConfig()
-		conf.SetAddress(a.Addr())
-		conf.SetClientCredentials(a.ClientID, a.ClientSecret)
-		client, err := kc.NewClient(conf)
-		if err != nil {
-			return nil, err
-		}
-		kc.SetGlobal(client)
-	}
-
-	return kc.C(), nil
-}
-
-func newDefaultKeyauth() *keyauth {
-	return &keyauth{}
-}
-
 type mysql struct {
 	Host        string `toml:"host" env:"MYSQL_HOST"`
 	Port        string `toml:"port" env:"MYSQL_PORT"`
@@ -151,7 +148,7 @@ type mysql struct {
 
 func newDefaultMySQL() *mysql {
 	return &mysql{
-		Database:    "demo-cmdb",
+		Database:    "cmdb-g7",
 		Host:        "127.0.0.1",
 		Port:        "3306",
 		MaxOpenConn: 200,

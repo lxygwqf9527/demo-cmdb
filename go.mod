@@ -3,21 +3,29 @@ module github.com/lxygwqf9527/demo-cmdb
 go 1.18
 
 require (
-	github.com/BurntSushi/toml v1.2.1
-	github.com/caarlos0/env/v6 v6.10.1
+	github.com/BurntSushi/toml v1.1.0
+	github.com/caarlos0/env/v6 v6.9.2
 	github.com/emicklei/go-restful-openapi v1.4.1
 	github.com/emicklei/go-restful-openapi/v2 v2.9.1
-	github.com/emicklei/go-restful/v3 v3.10.1
-	github.com/go-openapi/spec v0.20.7
-	github.com/go-playground/validator/v10 v10.11.1
-	github.com/go-sql-driver/mysql v1.7.0
+	github.com/emicklei/go-restful/v3 v3.8.0
+	github.com/go-openapi/spec v0.20.6
+	github.com/go-playground/validator v9.31.0+incompatible
+	github.com/go-playground/validator/v10 v10.11.0
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/imdario/mergo v0.3.13
-	github.com/infraboard/keyauth v0.8.1
-	github.com/infraboard/mcube v1.9.6
+	github.com/infraboard/keyauth v0.7.9
+	github.com/infraboard/mcenter v0.0.5
+	github.com/infraboard/mcube v1.9.4
+	github.com/lxygwqf9527/demo-keyauth v1.0.1
 	github.com/rs/xid v1.4.0
-	github.com/spf13/cobra v1.6.1
-	github.com/stretchr/testify v1.8.1
-	google.golang.org/grpc v1.51.0
+	github.com/spf13/cobra v1.4.0
+	github.com/stretchr/testify v1.7.1
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.403
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cvm v1.0.403
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sts v1.0.403
+	google.golang.org/grpc v1.46.2
+	google.golang.org/protobuf v1.27.1
+
 )
 
 require (
@@ -45,16 +53,16 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
-	go.mongodb.org/mongo-driver v1.8.3 // indirect
+	go.mongodb.org/mongo-driver v1.9.1 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.20.0 // indirect
 	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838 // indirect
-	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
-	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/net v0.3.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/text v0.5.0 // indirect
 	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
